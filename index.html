@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="Price finder, car search and flight finder">
+<link rel="manifest" href="manifest.json">
+<title>Mcom</title>
+<style>
+  :root {
+    --bg: #000000; --surface: #1C1C1E; --surface2: #2C2C2E;
+    --border: #3A3A3C; --blue: #007AFF; --text: #FFFFFF;
+    --text-dim: #636366; --radius: 16px; --shadow: 0 2px 12px rgba(0,0,0,0.5);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    padding: 0 16px 40px; padding-top: max(56px, env(safe-area-inset-top));
+  }
+  .container { max-width: 460px; margin: 0 auto; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .header { padding: 8px 4px 24px; }
+  .back-btn {
+    background: none; border: none; color: var(--blue);
+    font-size: 17px; font-family: inherit; cursor: pointer;
+    display: flex; align-items: center; gap: 4px; padding: 0 0 12px;
+  }
+  .header h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
+  .header p { font-size: 15px; color: var(--text-dim); margin-top: 2px; }
+
+  .app-grid { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+  .app-card {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 20px 18px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 16px;
+    cursor: pointer; transition: transform 0.1s, opacity 0.1s;
+  }
+  .app-card:active { transform: scale(0.97); opacity: 0.85; }
+  .app-card-icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; flex-shrink: 0; background: #000000;
+  }
+  .app-card-info { flex: 1; }
+  .app-card-name { font-size: 18px; font-weight: 600; }
+  .app-card-desc { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+  .app-card-arrow { color: #636366; font-size: 20px; }
+
+  .search-wrap {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 12px; margin-bottom: 16px; box-shadow: var(--shadow);
+  }
+  .input-row {
+    display: flex; align-items: center; background: var(--surface2);
+    border-radius: 12px; padding: 0 12px; height: 44px; gap: 8px; margin-bottom: 10px;
+  }
+  .input-row span { color: var(--text-dim); font-size: 16px; }
+  .search-input {
+    flex: 1; border: none; background: transparent;
+    font-size: 17px; font-family: inherit; color: var(--text); outline: none;
+  }
+  .search-input::placeholder { color: var(--text-dim); }
+  .primary-btn {
+    width: 100%; height: 44px; background: var(--blue);
+    border: none; border-radius: 12px; color: white;
+    font-size: 17px; font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .primary-btn:active { opacity: 0.75; }
+
+  .section-label {
+    font-size: 13px; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.5px; padding: 0 4px 8px;
+  }
+  .result-list {
+    background: var(--surface); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px;
+  }
+  .result-row {
+    display: flex; align-items: center; padding: 13px 16px;
+    border-bottom: 0.5px solid var(--border); gap: 14px;
+    text-decoration: none; color: var(--text); background: var(--surface);
+    transition: background 0.1s;
+  }
+  .result-row:last-child { border-bottom: none; }
+  .result-row:active { background: var(--surface2); }
+  .row-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .row-details { flex: 1; }
+  .row-name { font-size: 17px; font-weight: 500; }
+  .row-sub { font-size: 13px; color: var(--text-dim); margin-top: 1px; }
+  .chevron { color: #636366; font-size: 18px; }
+
+  .open-all-btn {
+    width: 100%; height: 50px; background: var(--blue);
+    border: none; border-radius: var(--radius); color: white;
+    font-size: 17px; font-weight: 600; font-family: inherit; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,122,255,0.3); margin-bottom: 12px;
+    transition: opacity 0.15s;
+  }
+  .open-all-btn:active { opacity: 0.8; }
+
+  .info-banner {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .info-banner p { font-size: 15px; color: #EBEBF5; }
+  .info-banner strong { color: var(--text); }
+  .tip { text-align: center; color: var(--text-dim); font-size: 13px; padding: 4px 0 8px; }
+
+  .form-card {
+    background: var(--surface); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px;
+  }
+  .form-row {
+    display: flex; align-items: center; padding: 13px 16px;
+    border-bottom: 0.5px solid var(--border); gap: 12px;
+  }
+  .form-row:last-child { border-bottom: none; }
+  .form-label { font-size: 17px; font-weight: 500; min-width: 70px; }
+  .form-input, .form-select {
+    flex: 1; border: none; background: transparent;
+    font-size: 17px; font-family: inherit; color: var(--blue);
+    outline: none; text-align: right;
+  }
+
+  .seg-control {
+    display: flex; background: var(--surface2); border-radius: 10px;
+    padding: 2px; margin-bottom: 16px;
+  }
+  .seg-btn {
+    flex: 1; height: 34px; border: none; border-radius: 8px;
+    background: transparent; font-size: 14px; font-weight: 500;
+    font-family: inherit; cursor: pointer; color: var(--text-dim); transition: all 0.2s;
+  }
+  .seg-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+  .check-list {
+    background: var(--surface); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px;
+  }
+  .check-row {
+    display: flex; align-items: center; padding: 13px 16px;
+    border-bottom: 0.5px solid var(--border); gap: 12px; cursor: pointer;
+  }
+  .check-row:last-child { border-bottom: none; }
+  .check-row input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--blue); flex-shrink: 0; }
+  .check-row label { font-size: 17px; cursor: pointer; flex: 1; color: var(--text); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="header">
+    <h1>My Apps</h1>
+    <p>All your tools in one place</p>
+  </div>
+  <div class="app-grid">
+    <div class="app-card" onclick="show('pricer')">
+      <div class="app-card-icon">🏷️</div>
+      <div class="app-card-info">
+        <div class="app-card-name">Pricer</div>
+        <div class="app-card-desc">Compare product prices across stores</div>
+      </div>
+      <span class="app-card-arrow">›</span>
+    </div>
+    <div class="app-card" onclick="show('cars')">
+      <div class="app-card-icon">🚗</div>
+      <div class="app-card-info">
+        <div class="app-card-name">Car Finder</div>
+        <div class="app-card-desc">Search global car prices & models</div>
+      </div>
+      <span class="app-card-arrow">›</span>
+    </div>
+    <div class="app-card" onclick="show('flights')">
+      <div class="app-card-icon">✈️</div>
+      <div class="app-card-info">
+        <div class="app-card-name">Flight Finder</div>
+        <div class="app-card-desc">Search flights across airlines</div>
+      </div>
+      <span class="app-card-arrow">›</span>
+    </div>
+  </div>
+</div>
+
+<!-- PRICER -->
+<div id="pricer" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="show('home')">‹ My Apps</button>
+    <h1>Pricer</h1>
+    <p>Compare prices across stores</p>
+  </div>
+  <div class="search-wrap">
+    <div class="input-row">
+      <span>🔍</span>
+      <input type="text" id="pricerQuery" class="search-input" placeholder="Search product..." autocomplete="off" inputmode="search">
+    </div>
+    <button class="primary-btn" onclick="searchPricer()">Find Prices</button>
+  </div>
+  <div id="pricerResults"></div>
+</div>
+
+<!-- CAR FINDER -->
+<div id="cars" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="show('home')">‹ My Apps</button>
+    <h1>Car Finder</h1>
+    <p>Search global car prices</p>
+  </div>
+  <div class="search-wrap">
+    <div class="input-row">
+      <span>🔍</span>
+      <input type="text" id="carQuery" class="search-input" placeholder="e.g. Toyota Camry 2024" autocomplete="off">
+    </div>
+    <button class="primary-btn" onclick="searchCar()">Search Car</button>
+  </div>
+  <div class="section-label">Or Browse by Details</div>
+  <div class="form-card">
+    <div class="form-row">
+      <span class="form-label">Brand</span>
+      <select class="form-select" id="carBrand">
+        <option value="">Select Brand</option>
+        <option>Acura</option><option>Alfa Romeo</option><option>Aston Martin</option>
+        <option>Audi</option><option>Bentley</option><option>BMW</option>
+        <option>Bugatti</option><option>Buick</option><option>Cadillac</option>
+        <option>Chevrolet</option><option>Chrysler</option><option>Dodge</option>
+        <option>Ferrari</option><option>Fiat</option><option>Ford</option>
+        <option>Genesis</option><option>GMC</option><option>Honda</option>
+        <option>Hyundai</option><option>Infiniti</option><option>Jaguar</option>
+        <option>Jeep</option><option>Kia</option><option>Lamborghini</option>
+        <option>Land Rover</option><option>Lexus</option><option>Lincoln</option>
+        <option>Maserati</option><option>Mazda</option><option>McLaren</option>
+        <option>Mercedes-Benz</option><option>Mini</option><option>Mitsubishi</option>
+        <option>Nissan</option><option>Porsche</option><option>Ram</option>
+        <option>Rolls-Royce</option><option>Subaru</option><option>Tesla</option>
+        <option>Toyota</option><option>Volkswagen</option><option>Volvo</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <span class="form-label">Model</span>
+      <input type="text" class="form-input" id="carModel" placeholder="e.g. Camry">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Year</span>
+      <input type="number" class="form-input" id="carYear" placeholder="Any year" min="1900" max="2030">
+    </div>
+  </div>
+  <button class="open-all-btn" onclick="searchCarForm()">Find Car Prices</button>
+  <div id="carResults"></div>
+</div>
+
+<!-- FLIGHT FINDER -->
+<div id="flights" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="show('home')">‹ My Apps</button>
+    <h1>Flight Finder</h1>
+    <p>Search flights globally</p>
+  </div>
+  <div class="seg-control">
+    <button class="seg-btn active" id="seg-oneway" onclick="setTrip('oneway')">One Way</button>
+    <button class="seg-btn" id="seg-return" onclick="setTrip('return')">Return</button>
+  </div>
+  <div class="form-card" style="margin-bottom:16px">
+    <div class="form-row">
+      <span class="form-label">From</span>
+      <input type="text" class="form-input" id="flightFrom" placeholder="e.g. DXB" style="text-transform:uppercase">
+    </div>
+    <div class="form-row">
+      <span class="form-label">To</span>
+      <input type="text" class="form-input" id="flightTo" placeholder="e.g. CAI" style="text-transform:uppercase">
+    </div>
+    <div class="form-row">
+      <span class="form-label">Depart</span>
+      <input type="date" class="form-input" id="flightDep">
+    </div>
+    <div class="form-row" id="retRow" style="display:none">
+      <span class="form-label">Return</span>
+      <input type="date" class="form-input" id="flightRet">
+    </div>
+  </div>
+  <div class="section-label">Airlines</div>
+  <div class="check-list">
+    <div class="check-row"><input type="checkbox" id="a1" checked><label for="a1">Qatar Airways</label></div>
+    <div class="check-row"><input type="checkbox" id="a2" checked><label for="a2">Emirates</label></div>
+    <div class="check-row"><input type="checkbox" id="a3" checked><label for="a3">Flydubai</label></div>
+    <div class="check-row"><input type="checkbox" id="a4" checked><label for="a4">Tarco Aviation</label></div>
+    <div class="check-row"><input type="checkbox" id="a5" checked><label for="a5">Badr Airlines</label></div>
+    <div class="check-row"><input type="checkbox" id="a6" checked><label for="a6">Ethiopian Airlines</label></div>
+    <div class="check-row"><input type="checkbox" id="a7" checked><label for="a7">EgyptAir</label></div>
+    <div class="check-row"><input type="checkbox" id="a8" checked><label for="a8">Kenya Airways</label></div>
+    <div class="check-row"><input type="checkbox" id="a9" checked><label for="a9">Saudia</label></div>
+  </div>
+  <button class="open-all-btn" onclick="searchFlight()">Search Flights</button>
+  <div id="flightResults"></div>
+</div>
+
+</div>
+<script>
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// PRICER
+const STORES = [
+  { name:"Amazon",  emoji:"📦", bg:"#FF9500", url:"https://www.amazon.com/s?k=" },
+  { name:"eBay",    emoji:"🏷️", bg:"#007AFF", url:"https://www.ebay.com/sch/i.html?_nkw=" },
+  { name:"Temu",    emoji:"🛍️", bg:"#FF2D55", url:"https://www.temu.com/search_result.html?search_key=" },
+  { name:"Alibaba", emoji:"🏭", bg:"#FF6B00", url:"https://www.alibaba.com/trade/search?SearchText=" },
+  { name:"Shein",   emoji:"👗", bg:"#34C759", url:"https://www.shein.com/search?keyword=" },
+];
+document.getElementById("pricerQuery").addEventListener("keydown", e => { if(e.key==="Enter") searchPricer(); });
+function searchPricer() {
+  const q = document.getElementById("pricerQuery").value.trim();
+  if (!q) return;
+  const enc = encodeURIComponent(q);
+  const rows = STORES.map(s => `
+    <a href="${s.url}${enc}" target="_blank" class="result-row">
+      <div class="row-icon" style="background:${s.bg}20">${s.emoji}</div>
+      <div class="row-details"><div class="row-name">${s.name}</div><div class="row-sub">${s.name.toLowerCase()}.com</div></div>
+      <span class="chevron">›</span>
+    </a>`).join("");
+  document.getElementById("pricerResults").innerHTML = `
+    <div class="info-banner"><p>Results for <strong>"${q}"</strong></p></div>
+    <div class="section-label">Stores</div>
+    <div class="result-list">${rows}</div>
+    <button class="open-all-btn" onclick="openAllStores('${enc}')">Open All Stores at Once</button>
+    <p class="tip">Tap a store to see real prices</p>`;
+}
+function openAllStores(enc) {
+  STORES.forEach((s,i) => setTimeout(() => window.open(s.url+enc,"_blank"), i*300));
+}
+
+// CAR FINDER
+const CAR_SITES = [
+  { name:"Google",     emoji:"🔍", bg:"#4285F4", url:"https://www.google.com/search?q=" },
+  { name:"AutoTrader", emoji:"🚗", bg:"#FF6600", url:"https://www.autotrader.com/cars-for-sale/searchresults.xhtml?query=" },
+  { name:"Cars.com",   emoji:"🏁", bg:"#CC0000", url:"https://www.cars.com/shopping/results/?keyword=" },
+  { name:"CarGurus",   emoji:"💰", bg:"#00A0D2", url:"https://www.cargurus.com/Cars/new/nl#listing=searchCriteria%3A%7B%22query%22%3A%22" },
+  { name:"Mobile.de",  emoji:"🌍", bg:"#005A9C", url:"https://suchen.mobile.de/fahrzeuge/search.html?q=" },
+];
+function searchCar() {
+  const q = document.getElementById("carQuery").value.trim();
+  if (!q) return;
+  renderCarResults(q);
+}
+function searchCarForm() {
+  const brand = document.getElementById("carBrand").value;
+  const model = document.getElementById("carModel").value.trim();
+  const year  = document.getElementById("carYear").value.trim();
+  if (!brand && !model) { alert("Please enter a brand or model"); return; }
+  renderCarResults([year,brand,model].filter(Boolean).join(" "));
+}
+function renderCarResults(q) {
+  const enc = encodeURIComponent(q+" price");
+  const rows = CAR_SITES.map(s => `
+    <a href="${s.url}${enc}" target="_blank" class="result-row">
+      <div class="row-icon" style="background:${s.bg}20">${s.emoji}</div>
+      <div class="row-details"><div class="row-name">${s.name}</div><div class="row-sub">Tap to see real prices</div></div>
+      <span class="chevron">›</span>
+    </a>`).join("");
+  document.getElementById("carResults").innerHTML = `
+    <div class="info-banner"><p>Results for <strong>"${q}"</strong></p></div>
+    <div class="section-label">Car Sites</div>
+    <div class="result-list">${rows}</div>
+    <button class="open-all-btn" onclick="openAllCars('${enc}')">Open All Sites at Once</button>
+    <p class="tip">Compare prices across global car markets</p>`;
+  document.getElementById("carResults").scrollIntoView({behavior:"smooth"});
+}
+function openAllCars(enc) {
+  CAR_SITES.forEach((s,i) => setTimeout(() => window.open(s.url+enc,"_blank"), i*300));
+}
+
+// FLIGHT FINDER
+let tripType = "oneway";
+function setTrip(t) {
+  tripType = t;
+  document.getElementById("seg-oneway").className = "seg-btn"+(t==="oneway"?" active":"");
+  document.getElementById("seg-return").className  = "seg-btn"+(t==="return"?" active":"");
+  document.getElementById("retRow").style.display  = t==="return"?"flex":"none";
+}
+const AIRLINES = [
+  {id:"a1",name:"Qatar Airways"},{id:"a2",name:"Emirates"},
+  {id:"a3",name:"Flydubai"},{id:"a4",name:"Tarco Aviation"},{id:"a5",name:"Badr Airlines"},
+  {id:"a6",name:"Ethiopian Airlines"},{id:"a7",name:"EgyptAir"},
+  {id:"a8",name:"Kenya Airways"},{id:"a9",name:"Saudia"}
+];
+const FLIGHT_SITES = [
+  { name:"Google Flights", emoji:"✈️", bg:"#4285F4", url:"https://www.google.com/travel/flights?q=" },
+  { name:"Skyscanner",     emoji:"🌐", bg:"#00B0EA", url:"https://www.skyscanner.com/transport/flights/search/?query=" },
+  { name:"Kayak",          emoji:"🔎", bg:"#FF690F", url:"https://www.kayak.com/flights/" },
+  { name:"Booking.com",    emoji:"🏨", bg:"#003580", url:"https://www.booking.com/flights/search.html?query=" },
+];
+function searchFlight() {
+  const from = document.getElementById("flightFrom").value.trim().toUpperCase();
+  const to   = document.getElementById("flightTo").value.trim().toUpperCase();
+  const dep  = document.getElementById("flightDep").value;
+  const ret  = document.getElementById("flightRet").value;
+  if (!from||!to) { alert("Please enter departure and arrival airports"); return; }
+  const selected = AIRLINES.filter(a=>document.getElementById(a.id).checked).map(a=>a.name);
+  const airStr = selected.length ? selected.join(" or ") : "any airline";
+  let qText = `flights from ${from} to ${to}`;
+  if (dep) qText += ` on ${dep}`;
+  if (tripType==="return"&&ret) qText += ` returning ${ret}`;
+  qText += ` ${airStr}`;
+  const enc = encodeURIComponent(qText);
+  const fromTo = `${from}-${to}`;
+  const rows = FLIGHT_SITES.map(s => {
+    let url = s.url;
+    if (s.name==="Kayak") url += `${fromTo}/${dep||"anytime"}`+(tripType==="return"&&ret?`/${ret}`:"");
+    else url += enc;
+    return `<a href="${url}" target="_blank" class="result-row">
+      <div class="row-icon" style="background:${s.bg}20">${s.emoji}</div>
+      <div class="row-details"><div class="row-name">${s.name}</div><div class="row-sub">${from} → ${to}</div></div>
+      <span class="chevron">›</span>
+    </a>`;
+  }).join("");
+  document.getElementById("flightResults").innerHTML = `
+    <div class="info-banner"><p><strong>${from} → ${to}</strong>${dep?" · "+dep:""}${tripType==="return"&&ret?" → "+ret:""}</p></div>
+    <div class="section-label">Book On</div>
+    <div class="result-list">${rows}</div>
+    <button class="open-all-btn" onclick="openAllFlights('${enc}','${fromTo}','${dep}','${ret}')">Open All Sites at Once</button>
+    <p class="tip">Compare and pick the best deal</p>`;
+  document.getElementById("flightResults").scrollIntoView({behavior:"smooth"});
+}
+function openAllFlights(enc,fromTo,dep,ret) {
+  FLIGHT_SITES.forEach((s,i)=>{
+    let url=s.url;
+    if(s.name==="Kayak") url+=`${fromTo}/${dep||"anytime"}`+(ret?`/${ret}`:"");
+    else url+=enc;
+    setTimeout(()=>window.open(url,"_blank"),i*300);
+  });
+}
+</script>
+</body>
+</html>
